@@ -52,7 +52,7 @@ enum ClickableProbe {
 
         var hit: AXUIElement?
         guard AXUIElementCopyElementAtPosition(systemWide, Float(point.x), Float(point.y), &hit) == .success,
-              var element = hit else { return nil }
+              let hit, case var element = hit else { return nil }
 
         var pid: pid_t = 0
         AXUIElementGetPid(element, &pid)
@@ -69,7 +69,55 @@ enum ClickableProbe {
             guard let parent = parent(of: element) else { break }
             element = parent
         }
+        return controlBeneath(hit, point: point)
+    }
+
+    /// Some apps answer a hit test with a container lying over the real control: Chrome's
+    /// full-screen tab strip reports a plain group where the tab is. So look through the
+    /// window that was hit (only that one, so a control in another window behind it can't
+    /// count) for an actual control (tab, button, link…) under the point.
+    /// Skips web pages (hit-tested fine, and resting on text must never click) and stops
+    /// after a few hundred elements or a few dozen milliseconds.
+    private static func controlBeneath(_ hit: AXUIElement, point: CGPoint) -> Bool {
+        // The hit element's top-level ancestor (its window). Chrome's full-screen tab
+        // strip hangs off it even though it isn't in the app's window list.
+        var root = hit
+        for _ in 0..<40 {
+            guard let up = parent(of: root), string(up, kAXRoleAttribute) != "AXApplication" else { break }
+            root = up
+        }
+        let rootRole = string(root, kAXRoleAttribute) ?? ""
+        guard rootRole != "AXApplication", rootRole != "AXMenuBar" else { return false }
+        var queue = [root]
+        var visited = 0
+        let deadline = Date().addingTimeInterval(0.15)
+        while !queue.isEmpty, visited < 800, Date() < deadline {
+            let element = queue.removeFirst()
+            visited += 1
+            let role = string(element, kAXRoleAttribute) ?? ""
+            if role == "AXWebArea" { continue }
+            // No pruning by frame: Chrome draws its full-screen tabs above the frame it
+            // reports for their window, so a parent's frame can't rule children out.
+            if clickableRoles.contains(role), let f = frame(of: element), f.contains(point) { return true }
+            var kids: CFTypeRef?
+            if AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &kids) == .success,
+               let children = kids as? [AXUIElement] {
+                queue.append(contentsOf: children)
+            }
+        }
         return false
+    }
+
+    private static func frame(of element: AXUIElement) -> CGRect? {
+        var position: CFTypeRef?, size: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &position) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &size) == .success,
+              let position, let size,
+              CFGetTypeID(position) == AXValueGetTypeID(), CFGetTypeID(size) == AXValueGetTypeID() else { return nil }
+        var origin = CGPoint.zero, extent = CGSize.zero
+        guard AXValueGetValue(position as! AXValue, .cgPoint, &origin),
+              AXValueGetValue(size as! AXValue, .cgSize, &extent) else { return nil }
+        return CGRect(origin: origin, size: extent)
     }
 
     /// Roughly button/link/card sized, not a panel or a list.

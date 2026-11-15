@@ -52,6 +52,7 @@ struct MenuContentView: View {
             Picker("Mode", selection: Binding(get: { controller.mode }, set: { controller.setMode($0) })) {
                 Text("Pointer").tag(TrackingMode.pointer)
                 Text("Scroll").tag(TrackingMode.scroll)
+                Text("Zoom").tag(TrackingMode.zoom)
             }
             .pickerStyle(.segmented)
             .labelsHidden()

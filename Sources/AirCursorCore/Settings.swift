@@ -21,6 +21,10 @@ public struct PointerSettings: Codable, Equatable, Sendable {
     public var invertVertical: Bool = false
     public var scrollSpeed: Double = 1.0
     public var invertScroll: Bool = false
+    /// Scroll mode works like a joystick: hold your head up or down and the page keeps
+    /// scrolling until you come back to where you started. Off = the old behavior,
+    /// where only head movement scrolls.
+    public var continuousScroll: Bool = true
 
     public init() {}
 
@@ -35,6 +39,7 @@ public struct PointerSettings: Codable, Equatable, Sendable {
         invertVertical = c.value(.invertVertical, default: d.invertVertical)
         scrollSpeed = c.value(.scrollSpeed, default: d.scrollSpeed)
         invertScroll = c.value(.invertScroll, default: d.invertScroll)
+        continuousScroll = c.value(.continuousScroll, default: d.continuousScroll)
     }
 }
 
@@ -50,11 +55,15 @@ public struct GestureSettings: Codable, Equatable, Sendable {
     /// Roll (degrees) away from your neutral posture that counts as a tilt.
     public var tiltAngle: Double = 22
     /// How long a tilt must be held before it fires.
-    public var tiltHold: Double = 0.3
+    public var tiltHold: Double = 0.6
     /// Flip which side counts as "left" if your AirPods report roll the other way.
     public var swapTiltDirection: Bool = false
     /// Quiet period after any gesture so one movement can't fire twice.
     public var cooldown: Double = 0.5
+    /// How far (degrees) a head flick must swing to count as a swipe.
+    public var swipeAmplitude: Double = 10
+    /// Max time for a whole swipe (out to the side and back).
+    public var swipeWindow: Double = 0.45
 
     public init() {}
 
@@ -69,6 +78,8 @@ public struct GestureSettings: Codable, Equatable, Sendable {
         tiltHold = c.value(.tiltHold, default: d.tiltHold)
         swapTiltDirection = c.value(.swapTiltDirection, default: d.swapTiltDirection)
         cooldown = c.value(.cooldown, default: d.cooldown)
+        swipeAmplitude = c.value(.swipeAmplitude, default: d.swipeAmplitude)
+        swipeWindow = c.value(.swipeWindow, default: d.swipeWindow)
     }
 }
 
@@ -97,7 +108,7 @@ public struct DwellSettings: Codable, Equatable, Sendable {
 
 public struct AppSettings: Codable, Equatable, Sendable {
     /// Bumped when defaults change in a way existing users should receive.
-    public static let currentVersion = 3
+    public static let currentVersion = 8
     public var version: Int = AppSettings.currentVersion
 
     public var pointer = PointerSettings()
@@ -154,6 +165,35 @@ extension AppSettings {
             // v3: shake needs bigger, repeated swings so glancing around never pauses.
             s.gestures.shakeAmplitude = GestureSettings().shakeAmplitude
             s.gestures.shakeWindow = GestureSettings().shakeWindow
+        }
+        if s.version < 4 {
+            // v4: pause/resume moves from shaking to tilting right and holding. Only
+            // when both are still on their old defaults, so custom choices are kept.
+            if s.actions[.shake] == .toggleTracking, s.actions[.tiltRight] == .none {
+                s.actions[.shake] = .none
+                s.actions[.tiltRight] = .toggleTracking
+            }
+        }
+        if s.version < 5 {
+            // v5: smaller, easier flicks. Only replaces the old defaults, not tuned values.
+            if s.gestures.swipeAmplitude == 15 { s.gestures.swipeAmplitude = GestureSettings().swipeAmplitude }
+            if s.gestures.swipeWindow == 0.6 { s.gestures.swipeWindow = GestureSettings().swipeWindow }
+        }
+        if s.version < 6 {
+            // v6: tilt left (if unused) turns on zoom mode.
+            if s.actions[.tiltLeft] == .none { s.actions[.tiltLeft] = .toggleZoomMode }
+        }
+        if s.version < 7 {
+            // v7: tilts pause and switch modes now, so they must be held a little longer
+            // (a quick sideways flick while looking down can roll the head briefly).
+            if s.gestures.tiltHold == 0.3 { s.gestures.tiltHold = GestureSettings().tiltHold }
+        }
+        if s.version < 8 {
+            // v8: the triple stem press starts dictation. Only when scroll mode is still
+            // reachable another way (the chin-up nod), so no one loses it.
+            if s.actions[.stemTriple] == .toggleScrollMode, s.actions[.nodUp] == .toggleScrollMode {
+                s.actions[.stemTriple] = .dictate
+            }
         }
         s.version = AppSettings.currentVersion
         return s

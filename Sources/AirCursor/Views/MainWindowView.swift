@@ -161,7 +161,7 @@ struct SetupView: View {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("How to use it").font(.headline)
-                        Text("Turn your head → move · Press stem → click · Press twice → right‑click · Press three times → scroll mode · Nod → click · Shake → pause/resume · \(HotKey.toggleTracking.display) → pause/resume")
+                        Text("Turn your head → move · Press stem → click · Press twice → right‑click · Press three times → dictation (talk to type) · Nod → click · Nod up (chin up and back) → scroll mode · Flick head left/right → switch Spaces · Tilt head right and hold → pause/resume · Tilt head left and hold → zoom mode · \(HotKey.toggleTracking.display) → pause/resume")
                             .font(.callout).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -322,11 +322,16 @@ struct PointerSettingsView: View {
                 Toggle("Invert up / down", isOn: $controller.settings.pointer.invertVertical)
             }
 
-            Section("Scroll mode") {
+            Section("Scroll & zoom mode") {
                 LabeledSlider(title: "Scroll speed", value: $controller.settings.pointer.scrollSpeed, range: 0.2...4,
                               format: { String(format: "%.1f×", $0) })
                 Toggle("Invert scroll direction", isOn: $controller.settings.pointer.invertScroll)
-                Text("In scroll mode, look down/up to scroll and turn left/right to scroll sideways. Toggle it with a triple stem press or \(HotKey.scrollMode.display).")
+                Toggle("Keep scrolling while head is held up or down", isOn: $controller.settings.pointer.continuousScroll)
+                Text(controller.settings.pointer.continuousScroll
+                     ? "In scroll mode, hold your head up or down to keep scrolling (lean further to go faster) and come back level to stop. Turn left/right to scroll sideways. Toggle it with a quick chin-up nod or \(HotKey.scrollMode.display)."
+                     : "In scroll mode, look down/up to scroll and turn left/right to scroll sideways. Toggle it with a quick chin-up nod or \(HotKey.scrollMode.display).")
+                Text("In zoom mode, hold your head up to zoom in and down to zoom out (lean further to zoom faster); come back level to stop. It's a smooth two-finger pinch around the pointer, so point at what you want to see first. Works wherever trackpad pinch does (Safari, Chrome, Preview, Maps, Photos…). Experimental: it uses an undocumented macOS feature. Toggle it by tilting your head left and holding, or \(HotKey.zoomMode.display). In scroll and zoom mode, only the gestures that switch mode or pause stay active.")
+                    .font(.caption).foregroundStyle(.secondary)
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -358,12 +363,12 @@ struct GestureSettingsView: View {
             } header: {
                 Text("Stem presses")
             } footer: {
-                Text("While tracking is on, AirCursor takes over play/pause/next/previous from your AirPods and keyboard media keys. Pause tracking to give them back to your music app.")
+                Text("While tracking is on, AirCursor takes over play/pause/next/previous from your AirPods and keyboard media keys. Pause tracking to give them back to your music app.\n\n\"Dictate\" starts macOS Dictation, which listens through your AirPods and types into whatever text box is focused (Claude, Codex, Terminal…). Set System Settings › Keyboard › Dictation › Shortcut to \"Press Control Key Twice\". AirCursor never hears the audio itself.")
                     .font(.caption).foregroundStyle(.secondary)
             }
 
             Section("Head gestures") {
-                ForEach([Trigger.nod, .shake, .tiltLeft, .tiltRight]) { trigger in
+                ForEach([Trigger.nod, .nodUp, .shake, .tiltLeft, .tiltRight, .swipeLeft, .swipeRight]) { trigger in
                     ActionPicker(trigger: trigger, action: binding(trigger))
                 }
                 LabeledSlider(title: "Nod size needed", value: $controller.settings.gestures.nodAmplitude, range: 3...20, step: 0.5,
@@ -377,6 +382,9 @@ struct GestureSettingsView: View {
                 LabeledSlider(title: "Tilt hold", value: $controller.settings.gestures.tiltHold, range: 0.1...1.0,
                               format: { String(format: "%.1fs", $0) })
                 Toggle("Swap tilt left / right", isOn: $controller.settings.gestures.swapTiltDirection)
+                LabeledSlider(title: "Flick size needed", value: $controller.settings.gestures.swipeAmplitude, range: 6...30, step: 1,
+                              format: { String(format: "%.0f°", $0) },
+                              help: "A flick is a quick, small turn to one side and straight back, like a three-finger swipe. Flick right for the Space or full-screen app on the right. Lower = easier flicks, but more accidental switches.")
                 Text("Clicks from a nod or shake land where the pointer was just before you moved, so the gesture itself never moves your target.")
                     .font(.caption).foregroundStyle(.secondary)
             }
@@ -463,7 +471,7 @@ struct GeneralView: View {
             Section("Tips") {
                 VStack(alignment: .leading, spacing: 6) {
                     tip("Pointer drifting while you’re still? Raise Steadiness.")
-                    tip("Hit the screen edge? Pause (shake or \(HotKey.toggleTracking.display)), turn back to center, resume — like lifting a mouse.")
+                    tip("Hit the screen edge? Pause (tilt your head right and hold, or \(HotKey.toggleTracking.display)), turn back to center, resume — like lifting a mouse.")
                     tip("Removing an AirPod can send “pause”, which AirCursor treats as a press. Pause tracking first, or turn off Automatic Ear Detection.")
                     tip("Mission Control and Spaces actions use the standard macOS shortcuts (⌃↑, ⌃↓, ⌃←, ⌃→).")
                 }

@@ -3,7 +3,8 @@ import Foundation
 /// Something the user does with their AirPods.
 public enum Trigger: String, Codable, CaseIterable, Identifiable, Sendable {
     case stemSingle, stemDouble, stemTriple
-    case nod, shake, tiltLeft, tiltRight
+    case nod, nodUp, shake, tiltLeft, tiltRight
+    case swipeLeft, swipeRight
     case dwell
 
     public var id: String { rawValue }
@@ -14,9 +15,12 @@ public enum Trigger: String, Codable, CaseIterable, Identifiable, Sendable {
         case .stemDouble: "Press stem twice"
         case .stemTriple: "Press stem three times"
         case .nod: "Nod"
+        case .nodUp: "Nod up (chin up and back)"
         case .shake: "Shake head"
         case .tiltLeft: "Tilt head left"
         case .tiltRight: "Tilt head right"
+        case .swipeLeft: "Flick head left"
+        case .swipeRight: "Flick head right"
         case .dwell: "Hover (rest the pointer)"
         }
     }
@@ -26,9 +30,12 @@ public enum Trigger: String, Codable, CaseIterable, Identifiable, Sendable {
     public var headGesture: HeadGesture? {
         switch self {
         case .nod: .nod
+        case .nodUp: .nodUp
         case .shake: .shake
         case .tiltLeft: .tiltLeft
         case .tiltRight: .tiltRight
+        case .swipeLeft: .swipeLeft
+        case .swipeRight: .swipeRight
         default: nil
         }
     }
@@ -36,9 +43,12 @@ public enum Trigger: String, Codable, CaseIterable, Identifiable, Sendable {
     public init(_ gesture: HeadGesture) {
         switch gesture {
         case .nod: self = .nod
+        case .nodUp: self = .nodUp
         case .shake: self = .shake
         case .tiltLeft: self = .tiltLeft
         case .tiltRight: self = .tiltRight
+        case .swipeLeft: self = .swipeLeft
+        case .swipeRight: self = .swipeRight
         }
     }
 }
@@ -49,11 +59,13 @@ public enum PointerAction: String, Codable, CaseIterable, Identifiable, Sendable
     case leftClick, rightClick, doubleClick, middleClick
     case toggleDrag
     case toggleScrollMode
+    case toggleZoomMode
     case toggleTracking
     case recenter
     case missionControl, appWindows, previousSpace, nextSpace
     case back, forward
     case screenshot
+    case dictate, pressReturn
 
     public var id: String { rawValue }
 
@@ -66,6 +78,7 @@ public enum PointerAction: String, Codable, CaseIterable, Identifiable, Sendable
         case .middleClick: "Middle click"
         case .toggleDrag: "Start / drop drag"
         case .toggleScrollMode: "Toggle scroll mode"
+        case .toggleZoomMode: "Toggle zoom mode"
         case .toggleTracking: "Pause / resume tracking"
         case .recenter: "Recenter cursor"
         case .missionControl: "Mission Control"
@@ -75,6 +88,8 @@ public enum PointerAction: String, Codable, CaseIterable, Identifiable, Sendable
         case .back: "Back (⌘[)"
         case .forward: "Forward (⌘])"
         case .screenshot: "Screenshot tool"
+        case .dictate: "Dictate (talk to type)"
+        case .pressReturn: "Press Return (send)"
         }
     }
 
@@ -90,8 +105,9 @@ public enum PointerAction: String, Codable, CaseIterable, Identifiable, Sendable
     public static let groups: [(title: String, actions: [PointerAction])] = [
         ("", [.none]),
         ("Mouse", [.leftClick, .rightClick, .doubleClick, .middleClick, .toggleDrag]),
-        ("AirCursor", [.toggleScrollMode, .toggleTracking, .recenter]),
+        ("AirCursor", [.toggleScrollMode, .toggleZoomMode, .toggleTracking, .recenter]),
         ("System", [.missionControl, .appWindows, .previousSpace, .nextSpace, .back, .forward, .screenshot]),
+        ("Voice", [.dictate, .pressReturn]),
     ]
 }
 
@@ -100,11 +116,19 @@ public struct ActionMap: Codable, Equatable, Sendable {
     public static let defaults: [Trigger: PointerAction] = [
         .stemSingle: .leftClick,
         .stemDouble: .rightClick,
-        .stemTriple: .toggleScrollMode,
+        // Talk through the AirPods: macOS Dictation types into the focused text box.
+        .stemTriple: .dictate,
         .nod: .leftClick,
-        .shake: .toggleTracking,
-        .tiltLeft: .none,
-        .tiltRight: .none,
+        // A quick chin-up nod enters and leaves scroll mode; a normal (downward) nod clicks.
+        .nodUp: .toggleScrollMode,
+        // Pausing is one calm tilt-and-hold; shaking is tiring and too close to a flick.
+        .shake: .none,
+        // Tilt left and hold: zoom mode (hold head up to pinch-zoom in, down to zoom out).
+        .tiltLeft: .toggleZoomMode,
+        .tiltRight: .toggleTracking,
+        // Like a three-finger swipe: flick right to go to the Space / full-screen app on the right.
+        .swipeLeft: .previousSpace,
+        .swipeRight: .nextSpace,
         .dwell: .leftClick,
     ]
 
@@ -132,6 +156,12 @@ public struct ActionMap: Codable, Equatable, Sendable {
     /// True if some head gesture can resume tracking while paused.
     public var headGestureCanToggleTracking: Bool {
         triggers(for: .toggleTracking).contains { $0.headGesture != nil }
+    }
+
+    /// True if a trigger switches between pointer, scroll and zoom mode or pauses, so it
+    /// stays live while the head is busy scrolling or zooming.
+    public static func isModeSwitch(_ action: PointerAction) -> Bool {
+        action == .toggleScrollMode || action == .toggleZoomMode || action == .toggleTracking
     }
 
     /// True if some stem press can resume tracking while paused.

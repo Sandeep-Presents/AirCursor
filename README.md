@@ -38,12 +38,15 @@ AirCursor reads the motion sensors already built into your AirPods and turns hea
 | Rest the pointer on a button | **Hover click.** A ring fills, then it clicks. Only buttons, links, tabs, menus, fields and Dock icons count, so resting on text you're reading never clicks |
 | Press the stem once | Left click |
 | Press the stem twice | Right click |
-| Press the stem three times | Scroll mode: look up/down/left/right to scroll |
+| Press the stem three times | Dictation: talk through your AirPods and macOS types into the focused box (Claude, Codex, Terminal…); press again to stop. Needs System Settings › Keyboard › Dictation › Shortcut set to **Press Control Key Twice** |
 | Nod | Left click, landing where you pointed *before* the nod |
-| Shake your head | Pause / resume |
-| Tilt left / right | Your choice: Back/Forward, switch Spaces, Mission Control… |
+| Nod up (quick chin up and back) | Scroll mode on / off |
+| Tilt your head right and hold | Pause / resume |
+| Flick your head left / right | Switch Spaces / full-screen apps, like a three-finger swipe |
+| Tilt your head left and hold | Zoom mode: hold your head up to pinch-zoom in, down to zoom out, around the pointer (experimental) |
+| Shake | Your choice: Back/Forward, Mission Control… |
 
-Other actions you can assign: double click, middle click, drag lock, recenter, App windows, the screenshot tool, and more. Shortcuts: **⌃⌥T** pause · **⌃⌥S** scroll mode · **⌃⌥C** recenter · **⌃⌥D** drag.
+Other actions you can assign: double click, middle click, drag lock, recenter, App windows, the screenshot tool, and more. Shortcuts: **⌃⌥T** pause · **⌃⌥S** scroll mode · **⌃⌥Z** zoom mode · **⌃⌥C** recenter · **⌃⌥D** drag.
 
 ### A one-minute guided tour
 
@@ -112,7 +115,7 @@ AirCursor tells you when a new version is out and shows what's new. Click **Inst
 
 **Stem presses play/pause my music instead.** macOS sends AirPods presses to the "Now Playing" app. AirCursor claims that role while tracking, but if music is playing in another app, that app may win. Head gestures always work.
 
-**Removing an AirPod clicks.** Taking one out sends "pause", which counts as a stem press. Pause tracking first (shake or ⌃⌥T), or turn off Automatic Ear Detection.
+**Removing an AirPod clicks.** Taking one out sends "pause", which counts as a stem press. Pause tracking first (tilt right and hold, or ⌃⌥T), or turn off Automatic Ear Detection.
 
 ## How it works
 

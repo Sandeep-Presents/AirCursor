@@ -182,7 +182,11 @@ private struct TourStage: View {
         let (text, color): (String, Color) = {
             if controller.motionStreaming {
                 if !controller.trackingEnabled { return ("Paused", .orange) }
-                return (controller.mode == .scroll ? "Scroll mode" : "Following your head", .green)
+                switch controller.mode {
+                case .pointer: return ("Following your head", .green)
+                case .scroll: return ("Scroll mode", .green)
+                case .zoom: return ("Zoom mode", .green)
+                }
             }
             if pairing.isSearching { return ("Searching…", .blue) }
             if controller.connectedHeadphones != nil { return ("Connected · waiting for motion", .yellow) }
@@ -314,9 +318,12 @@ extension Trigger {
         case .stemDouble: "press the stem twice"
         case .stemTriple: "press the stem three times"
         case .nod: "nod"
+        case .nodUp: "nod upward (chin up and back)"
         case .shake: "shake your head"
         case .tiltLeft: "tilt your head left"
         case .tiltRight: "tilt your head right"
+        case .swipeLeft: "flick your head left"
+        case .swipeRight: "flick your head right"
         case .dwell: "rest the pointer on it"
         }
     }

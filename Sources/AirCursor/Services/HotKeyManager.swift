@@ -68,6 +68,7 @@ struct HotKey {
     static let scrollMode = HotKey(id: 2, keyCode: kVK_ANSI_S, display: "⌃⌥S", description: "Toggle scroll mode")
     static let recenter = HotKey(id: 3, keyCode: kVK_ANSI_C, display: "⌃⌥C", description: "Recenter cursor on screen")
     static let drag = HotKey(id: 4, keyCode: kVK_ANSI_D, display: "⌃⌥D", description: "Start / drop a drag")
+    static let zoomMode = HotKey(id: 5, keyCode: kVK_ANSI_Z, display: "⌃⌥Z", description: "Toggle zoom mode")
 
-    static let all = [toggleTracking, scrollMode, recenter, drag]
+    static let all = [toggleTracking, scrollMode, zoomMode, recenter, drag]
 }
